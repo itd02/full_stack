@@ -24,8 +24,17 @@ if [ ! -f .env ]; then
     touch .env
 fi
 
-# Update .env file
+# Update .env file with the IP address
 echo "REACT_APP_API_URL=http://$IP_ADDRESS:5003/api" > .env
 echo "MONGO_URL=mongodb://$IP_ADDRESS:27017/test2" >> .env
 
-echo "Updated .env with IP: $IP_ADDRESS"
+# Allow required ports through ufw
+echo "Allowing ports 3001, 5003, and 27017 through ufw..."
+sudo ufw allow 3001
+sudo ufw allow 5003
+sudo ufw allow 27017
+
+# Reload ufw to apply changes (optional but recommended)
+sudo ufw reload
+
+echo "Updated .env with IP: $IP_ADDRESS and allowed ports 3001, 5003, and 27017 through ufw."
