@@ -68,5 +68,5 @@ jobs:
             # (Optional) Deploy your app to a service, push Docker images, etc.
             # Example:
             # sudo aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
-          env:
-            PUBLIC_IP_HOST_MACHINE: ${{ secrets.HOST_DNS }}  # Public IP of your EC2 machine
+        env:
+          PUBLIC_IP_HOST_MACHINE: ${{ secrets.HOST_DNS }}  # Public IP of your EC2 machine
