@@ -49,15 +49,14 @@ jobs:
             # Check if the repository directory exists before moving to the home directory
             REPO_DIR="${GITHUB_REPOSITORY_NAME}"
 
-
             pwd
-
             echo $REPO_DIR
-            
+
+            # Check if the repository directory exists, and clone or pull
             if [ ! -d "$REPO_DIR" ]; then
               echo "Repository not found, cloning..."
               git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
-              cd ${GITHUB_REPOSITORY_NAME}  # Enter the cloned repository directory
+              cd ${REPO_DIR}  # Enter the cloned repository directory
             else
               echo "Repository already exists, pulling latest changes..."
               cd ~  # Move to the home directory
