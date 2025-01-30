@@ -17,6 +17,10 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}  # SSH private key to authenticate to EC2
           port: 22  # Default SSH port is 22
           script: |
+            # Export the PUBLIC_IP_HOST_MACHINE as an environment variable on the EC2 instance
+            export PUBLIC_IP_HOST_MACHINE="${{ secrets.HOST_DNS }}"
+            echo "PUBLIC_IP_HOST_MACHINE is set to: $PUBLIC_IP_HOST_MACHINE"
+            
             # Update EC2 instance
             sudo apt-get update -y
             sudo apt-get upgrade -y
