@@ -88,7 +88,6 @@ jobs:
             # Set up Docker Compose and Build Services
             sudo docker-compose -f docker-compose.yml up -d --build  # Build and run containers
 
-            # Wait for MongoDB, Backend, Frontend to be ready
             echo "Waiting for services to start..."
             sleep 30  # Adjust this sleep time based on your containers' startup time
 
