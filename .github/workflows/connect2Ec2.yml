@@ -1,0 +1,39 @@
+name: EC2 File Creation
+
+# Trigger the workflow on push to main, pull request to main, or manually via the GitHub UI
+on:
+  push:
+    branches:
+      - main  # This triggers when you push to the main branch (optional)
+  pull_request:
+    branches:
+      - main  # This triggers for PRs to the main branch (optional)
+  workflow_dispatch:  # This enables manual triggering via GitHub UI
+
+jobs:
+  create-file:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up SSH key for EC2 access
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Create ok.txt file on EC2 if it doesn't exist
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.USERNAME }}@${{ secrets.HOST_DNS }} << 'EOF'
+            TARGET_DIR="${{ secrets.TARGET_DIR }}"
+            FILE_PATH="${TARGET_DIR}/ok.txt"
+
+            # Check if ok.txt exists, and create it if it doesn't
+            if [ ! -f "$FILE_PATH" ]; then
+              touch "$FILE_PATH"
+              echo "ok.txt file created at $FILE_PATH"
+            else
+              echo "ok.txt already exists at $FILE_PATH"
+            fi
+          EOF
