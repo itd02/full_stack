@@ -49,6 +49,9 @@ jobs:
             # Check if the repository directory exists before moving to the home directory
             REPO_DIR="${GITHUB_REPOSITORY_NAME}"
 
+
+            pwd
+            
             if [ ! -d "$REPO_DIR" ]; then
               echo "Repository not found, cloning..."
               git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
@@ -59,8 +62,6 @@ jobs:
               cd ${REPO_DIR}  # Change to the existing repo directory
               git pull origin main  # Pull the latest changes
             fi
-
-            pwd
 
             # Ensure docker-compose.yml is present
             if [ ! -f "./docker-compose.yml" ]; then
