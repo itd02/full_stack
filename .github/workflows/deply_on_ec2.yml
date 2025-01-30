@@ -60,6 +60,8 @@ jobs:
               git pull origin main  # Pull the latest changes
             fi
 
+            pwd
+
             # Ensure docker-compose.yml is present
             if [ ! -f "./docker-compose.yml" ]; then
               echo "docker-compose.yml file not found!"
