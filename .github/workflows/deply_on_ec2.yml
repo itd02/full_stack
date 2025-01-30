@@ -46,23 +46,21 @@ jobs:
             # Optionally, remove all unused Docker images and volumes (if you want to free up space)
             # sudo docker system prune -af
 
-            # Get the repository name from the environment variable GITHUB_REPOSITORY
-
-            
+            # Debug: Print the repository name
+            echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"  # This will print the full name of the repo
             REPO_NAME="${{ secrets.TARGET_DIR }}/$(basename $GITHUB_REPOSITORY)"
 
-            pwd
-            echo "Repository name: $REPO_NAME"
+            # Check if REPO_NAME has been set correctly
+            echo "Resolved REPO_NAME: $REPO_NAME"
 
-            # Check if the directory already exists
+            # Check if the directory exists
             if [ ! -d "$REPO_NAME" ]; then
               echo "Repository not found, cloning..."
               git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
-              cd ${REPO_NAME}  # Enter the cloned repository directory
+              cd $REPO_NAME  # Change to the cloned repo directory
             else
               echo "Repository already exists, pulling latest changes..."
-              cd ~  # Move to the home directory
-              cd ${REPO_NAME}  # Change to the existing repo directory
+              cd $REPO_NAME  # Change to the existing repo directory
               git pull origin main  # Pull the latest changes
             fi
 
@@ -81,9 +79,5 @@ jobs:
 
             # Verify if containers are running
             sudo docker ps
-
-            # (Optional) Deploy your app to a service, push Docker images, etc.
-            # Example:
-            # sudo aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
         env:
           PUBLIC_IP_HOST_MACHINE: ${{ secrets.HOST_DNS }}  # Public IP of your EC2 machine
