@@ -49,11 +49,19 @@ jobs:
             # Pull your repository to get the latest code (if you need to)
             cd ~  # Move to home directory
             if [ ! -d "${GITHUB_REPOSITORY_NAME}" ]; then
+              echo "Repository not found, cloning..."
               git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
               cd ${GITHUB_REPOSITORY_NAME}
             else
-              cd ${GITHUB_REPOSITORY_NAME}  # Change directory if the repo already exists
-              git pull origin main  # Pull the latest changes if the repo already exists
+              echo "Repository already exists, pulling latest changes..."
+              cd ${GITHUB_REPOSITORY_NAME}  # Change directory to the existing repo
+              git pull origin main  # Pull the latest changes
+            fi
+
+            # Ensure docker-compose.yml is present
+            if [ ! -f "./docker-compose.yml" ]; then
+              echo "docker-compose.yml file not found!"
+              exit 1  # Exit the script with an error if docker-compose.yml is not found
             fi
 
             # Set up Docker Compose and Build Services
