@@ -27,7 +27,6 @@ jobs:
 
             # Persist environment variables by appending them to ~/.bashrc
             echo "export PUBLIC_IP_HOST_MACHINE=${PUBLIC_IP_HOST_MACHINE}" >> ~/.bashrc
-            echo "export PUBLIC_IP_HOST_MACHINE2=${PUBLIC_IP_HOST_MACHINE2}" >> ~/.bashrc
             source ~/.bashrc  # Apply the changes for this session
 
             
