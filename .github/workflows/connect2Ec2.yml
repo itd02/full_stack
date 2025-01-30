@@ -1,22 +1,21 @@
 name: EC2 File Creation
 
 on:
-  workflow_dispatch:  # Enables manual trigger via GitHub UI
+  workflow_dispatch:  # Allows manual triggering via GitHub UI
 
 jobs:
   create-file:
-    runs-on: ubuntu-latest  # Use a lightweight runner
+    runs-on: ubuntu-latest  # Use a lightweight Ubuntu runner
 
     steps:
-      - name: Set up SSH key for EC2 access
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
-
       - name: Create ok.txt file on EC2 if it doesn't exist
-        run: |
-          # SSH into the EC2 instance and check/create the ok.txt file
-          ssh -o StrictHostKeyChecking=no ${{ secrets.USERNAME }}@${{ secrets.HOST_DNS }} << 'EOF'
+        uses: appleboy/ssh-action@v1.2.0  # Specify the version as 1.2.0
+        with:
+          host: ${{ secrets.HOST_DNS }}  # EC2 instance public DNS (or IP)
+          username: ${{ secrets.USERNAME }}  # SSH username (ec2-user or ubuntu)
+          key: ${{ secrets.EC2_SSH_KEY }}  # SSH private key for authentication
+          port: 22  # SSH port (default is 22)
+          script: |
             TARGET_DIR="${{ secrets.TARGET_DIR }}"
             FILE_PATH="${TARGET_DIR}/ok.txt"
 
@@ -27,4 +26,3 @@ jobs:
             else
               echo "ok.txt already exists at $FILE_PATH"
             fi
-          EOF
