@@ -51,6 +51,8 @@ jobs:
 
 
             pwd
+
+            echo $REPO_DIR
             
             if [ ! -d "$REPO_DIR" ]; then
               echo "Repository not found, cloning..."
