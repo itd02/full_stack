@@ -1,9 +1,7 @@
 name: Setup Nginx with SSL and Reverse Proxy
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch: 
 
 jobs:
   setup-nginx:
