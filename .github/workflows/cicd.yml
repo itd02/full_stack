@@ -1,0 +1,60 @@
+name: Docker Build & Deploy
+
+on:
+  push:
+    branches:
+      - main  # Trigger the action when pushing to the main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # The environment in which the job runs
+
+    services:
+      mongo:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_DATABASE: test2  # Use same database as in docker-compose
+        options: >-
+          --health-cmd="curl --silent --fail localhost:27017 || exit 1"  # Check health of MongoDB container
+          --health-interval=30s
+          --health-timeout=10s
+          --health-retries=5
+
+    steps:
+      # Checkout repository code
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      # Set up Docker Compose and Build Services
+      - name: Set up Docker Compose
+        run: |
+          docker-compose -f docker-compose.yml up -d --build  # Build the containers and start them in detached mode
+
+      # Wait for services to be ready (MongoDB, Backend, Frontend)
+      - name: Wait for MongoDB to be ready
+        run: |
+          sleep 30  # Wait for the services to fully spin up (you may adjust this duration)
+
+      # Test if the containers are running
+      - name: Verify if containers are running
+        run: |
+          docker ps  # This will list all running containers to verify if everything is up
+
+
+      # Clean up by stopping containers (optional, depends on your use case)
+      - name: Stop Docker Compose services
+        run: |
+          docker-compose down
+
+      # (Optional) Deploy your app, push Docker image, etc. If you're deploying to a service, add the steps here.
+      # Example:
+      # - name: Deploy to AWS ECS (as an example)
+      #   run: |
+      #     aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
+
