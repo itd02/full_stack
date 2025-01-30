@@ -50,6 +50,7 @@ jobs:
             REPO_DIR="${GITHUB_REPOSITORY_NAME}"
 
             pwd
+            ls
             echo $REPO_DIR
 
             # Check if the repository directory exists, and clone or pull
