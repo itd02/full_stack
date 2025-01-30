@@ -48,7 +48,9 @@ jobs:
 
             # Debug: Print the repository name
             echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"  # This will print the full name of the repo
-            REPO_NAME="${{ secrets.TARGET_DIR }}/$(basename $GITHUB_REPOSITORY)"
+            # REPO_NAME="${{ secrets.TARGET_DIR }}/$(basename $GITHUB_REPOSITORY)"
+            REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+
 
             # Check if REPO_NAME has been set correctly
             echo "Resolved REPO_NAME: $REPO_NAME"
