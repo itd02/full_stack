@@ -94,6 +94,3 @@ jobs:
 
             # Verify if containers are running
             sudo docker ps
-        env:
-          PUBLIC_IP_HOST_MACHINE: ${{ secrets.HOST_DNS }}  # Public IP of your EC2 machine
-          PUBLIC_IP_HOST_MACHINE2: "1234"  # Public IP of your EC2 machine
