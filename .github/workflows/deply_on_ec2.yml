@@ -46,15 +46,17 @@ jobs:
             # Optionally, remove all unused Docker images and volumes (if you want to free up space)
             # sudo docker system prune -af
 
-            # Pull your repository to get the latest code (if you need to)
-            cd ~  # Move to home directory
-            if [ ! -d "${GITHUB_REPOSITORY_NAME}" ]; then
+            # Check if the repository directory exists before moving to the home directory
+            REPO_DIR="${GITHUB_REPOSITORY_NAME}"
+
+            if [ ! -d "$REPO_DIR" ]; then
               echo "Repository not found, cloning..."
               git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
-              cd ${GITHUB_REPOSITORY_NAME}
+              cd ${GITHUB_REPOSITORY_NAME}  # Enter the cloned repository directory
             else
               echo "Repository already exists, pulling latest changes..."
-              cd ${GITHUB_REPOSITORY_NAME}  # Change directory to the existing repo
+              cd ~  # Move to the home directory
+              cd ${REPO_DIR}  # Change to the existing repo directory
               git pull origin main  # Pull the latest changes
             fi
 
