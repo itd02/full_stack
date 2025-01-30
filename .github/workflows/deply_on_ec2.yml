@@ -50,6 +50,7 @@ jobs:
             cd ~  # Move to home directory
             if [ ! -d "${GITHUB_REPOSITORY_NAME}" ]; then
               git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
+              cd ${GITHUB_REPOSITORY_NAME}
             else
               cd ${GITHUB_REPOSITORY_NAME}  # Change directory if the repo already exists
               git pull origin main  # Pull the latest changes if the repo already exists
