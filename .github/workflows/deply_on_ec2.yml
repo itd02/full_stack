@@ -21,6 +21,12 @@ jobs:
             export PUBLIC_IP_HOST_MACHINE="${{ secrets.HOST_DNS }}"
             echo "PUBLIC_IP_HOST_MACHINE is set to: $PUBLIC_IP_HOST_MACHINE"
             export PUBLIC_IP_HOST_MACHINE2="1234"
+
+            # Persist environment variables by appending them to ~/.bashrc
+            echo "export PUBLIC_IP_HOST_MACHINE=${PUBLIC_IP_HOST_MACHINE}" >> ~/.bashrc
+            echo "export PUBLIC_IP_HOST_MACHINE2=${PUBLIC_IP_HOST_MACHINE2}" >> ~/.bashrc
+            source ~/.bashrc  # Apply the changes for this session
+
             
             # Update EC2 instance
             sudo apt-get update -y
