@@ -13,7 +13,7 @@ jobs:
 
       - name: Set up Nginx
         run: |
-          # Update and install Nginx
+          # Update and install Nginx and OpenSSL
           sudo apt update
           sudo apt install -y nginx openssl
 
@@ -24,10 +24,10 @@ jobs:
           openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -subj "/C=US/ST=State/L=City/O=Company/CN=${{ secrets.DOMAIN_NAME }}"
 
           # Configure Nginx to reverse proxy to port 3001 and use SSL
-          sudo bash -c 'cat > /etc/nginx/sites-available/default <<EOF
+          echo "
 server {
     listen 80;
-    server_name ${secrets.DOMAIN_NAME};
+    server_name ${{ secrets.DOMAIN_NAME }};
 
     # Redirect HTTP to HTTPS
     return 301 https://\$host\$request_uri;
@@ -35,7 +35,7 @@ server {
 
 server {
     listen 443 ssl;
-    server_name ${secrets.DOMAIN_NAME};
+    server_name ${{ secrets.DOMAIN_NAME }};
 
     ssl_certificate /etc/nginx/ssl/nginx.crt;
     ssl_certificate_key /etc/nginx/ssl/nginx.key;
@@ -48,7 +48,7 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
-EOF'
+" | sudo tee /etc/nginx/sites-available/default > /dev/null
 
           # Test Nginx configuration
           sudo nginx -t
