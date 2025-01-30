@@ -21,9 +21,9 @@ jobs:
           port: 22  # Default SSH port is 22
           script: |
             # Export the PUBLIC_IP_HOST_MACHINE as an environment variable on the EC2 instance
-            export PUBLIC_IP_HOST_MACHINE="${{ secrets.HOST_DNS }}"
+            echo "PUBLIC_IP_HOST_MACHINE=$(curl -s ifconfig.me)" | sudo tee -a /etc/environment > /dev/null
             echo "PUBLIC_IP_HOST_MACHINE is set to: $PUBLIC_IP_HOST_MACHINE"
-            export PUBLIC_IP_HOST_MACHINE2="1234"
+
 
             # Persist environment variables by appending them to ~/.bashrc
             echo "export PUBLIC_IP_HOST_MACHINE=${PUBLIC_IP_HOST_MACHINE}" >> ~/.bashrc
