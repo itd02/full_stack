@@ -1,90 +1,70 @@
 name: Docker Build & Deploy on EC2
 
 on:
-  workflow_dispatch:  # Allows you to manually trigger the workflow from the GitHub Actions UI
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Use Ubuntu environment for the GitHub runner
+    runs-on: ubuntu-latest
 
     steps:
-      # Set up SSH key for EC2 access
-      - name: Set up SSH key for EC2 access
-        uses: appleboy/ssh-action@v1.2.0
+      - name: SSH into EC2 and deploy
+        uses: appleboy/ssh-action@v1.3.0  # Updated to newer version
         with:
-          host: ${{ secrets.HOST_DNS }}  # EC2 public DNS or IP address
-          username: ${{ secrets.USERNAME }}  # SSH username for your EC2 instance (ec2-user, ubuntu, etc.)
-          key: ${{ secrets.EC2_SSH_KEY }}  # SSH private key to authenticate to EC2
-          port: 22  # Default SSH port is 22
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
           script: |
-            # Update EC2 instance
+            set -e  # Exit immediately if any command fails
+            REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+            REPO_DIR="$HOME/$REPO_NAME"
+
+            # System updates and dependencies
             sudo apt-get update -y
             sudo apt-get upgrade -y
+            sudo apt-get install -y jq  # Required for parsing GitHub API response
 
-            # Install Docker if not already installed
+            # Docker installation
             if ! command -v docker &> /dev/null; then
-              echo "Docker not found, installing Docker..."
               sudo apt-get install -y docker.io
-            else
-              echo "Docker is already installed"
+              sudo usermod -aG docker $USER  # Add current user to docker group
             fi
 
-            # Install Docker Compose if not already installed
+            # Docker Compose installation
             if ! command -v docker-compose &> /dev/null; then
-              echo "Docker Compose not found, installing Docker Compose..."
-              sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              LATEST_COMPOSE=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)
+              sudo curl -L "https://github.com/docker/compose/releases/download/$LATEST_COMPOSE/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
               sudo chmod +x /usr/local/bin/docker-compose
-            else
-              echo "Docker Compose is already installed"
             fi
 
-            # Stop and remove all running containers before creating new ones
-            echo "Stopping and removing all containers..."
-            sudo docker stop $(sudo docker ps -aq)  # Stop all running containers
-            sudo docker rm $(sudo docker ps -aq)    # Remove all containers (running or stopped)
+            # Cleanup existing containers
+            if [ -n "$(sudo docker ps -aq)" ]; then
+              sudo docker stop $(sudo docker ps -aq)
+              sudo docker rm $(sudo docker ps -aq)
+            fi
 
-            # Optionally, remove all unused Docker images and volumes (if you want to free up space)
-            # sudo docker system prune -af
-
-            # Check if the repository directory exists before moving to the home directory
-            REPO_NAME=$(basename $GITHUB_REPOSITORY)
-
-            pwd
-            ls
-            echo $REPO_DIR
-
-            # Check if the repository directory exists, and clone or pull
+            # Repository management
             if [ ! -d "$REPO_DIR" ]; then
-              echo "Repository not found, cloning..."
-              git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
-              cd ${REPO_DIR}  # Enter the cloned repository directory  
-              pwd
-              ls
+              git clone "https://github.com/$GITHUB_REPOSITORY" "$REPO_DIR"
             else
-              echo "Repository already exists, pulling latest changes..."
-              cd ~  # Move to the home directory
-              cd ${REPO_DIR}  # Change to the existing repo directory
-              git pull origin main  # Pull the latest changes
+              cd "$REPO_DIR"
+              git fetch origin
+              git reset --hard origin/main  # Replace 'main' with your default branch if different
             fi
 
-            # Ensure docker-compose.yml is present
+            # Verify docker-compose file exists
+            cd "$REPO_DIR"
             if [ ! -f "./docker-compose.yml" ]; then
-              echo "docker-compose.yml file not found!"
-              exit 1  # Exit the script with an error if docker-compose.yml is not found
+              echo "ERROR: docker-compose.yml not found!"
+              exit 1
             fi
 
-            # Set up Docker Compose and Build Services
-            sudo docker-compose -f docker-compose.yml up -d --build  # Build and run containers
+            # Start services
+            sudo docker-compose -f docker-compose.yml up -d --build
 
-            # Wait for MongoDB, Backend, Frontend to be ready
-            echo "Waiting for services to start..."
-            sleep 30  # Adjust this sleep time based on your containers' startup time
-
-            # Verify if containers are running
+            # Health check
+            sleep 30
             sudo docker ps
-
-            # (Optional) Deploy your app to a service, push Docker images, etc.
-            # Example:
-            # sudo aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
         env:
           PUBLIC_IP_HOST_MACHINE: ${{ secrets.HOST_DNS }}  # Public IP of your EC2 machine
