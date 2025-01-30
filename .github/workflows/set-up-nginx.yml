@@ -11,54 +11,54 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up Nginx
+      - name: Set up SSH key for EC2 (if necessary)
         run: |
-          # Update and install Nginx and OpenSSL
+          echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
+          chmod 600 ec2_key.pem
+
+      - name: Create and configure Nginx on EC2
+        run: |
+          # Create setup script file
+          echo '
+          #!/bin/bash
+          set -e
           sudo apt update
           sudo apt install -y nginx openssl
-
-          # Create a directory for SSL certificates
           sudo mkdir -p /etc/nginx/ssl
-
-          # Generate a self-signed SSL certificate (adjust the domain for production)
           openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -subj "/C=US/ST=State/L=City/O=Company/CN=${{ secrets.DOMAIN_NAME }}"
+          cat <<EOF | sudo tee /etc/nginx/sites-available/default > /dev/null
+          server {
+              listen 80;
+              server_name ${{ secrets.DOMAIN_NAME }};
+              return 301 https://\$host\$request_uri;
+          }
 
-          # Configure Nginx to reverse proxy to port 3001 and use SSL
-          echo "
-server {
-    listen 80;
-    server_name ${{ secrets.DOMAIN_NAME }};
-
-    # Redirect HTTP to HTTPS
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name ${{ secrets.DOMAIN_NAME }};
-
-    ssl_certificate /etc/nginx/ssl/nginx.crt;
-    ssl_certificate_key /etc/nginx/ssl/nginx.key;
-
-    location / {
-        proxy_pass http://localhost:3001;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-" | sudo tee /etc/nginx/sites-available/default > /dev/null
-
-          # Test Nginx configuration
+          server {
+              listen 443 ssl;
+              server_name ${{ secrets.DOMAIN_NAME }};
+              ssl_certificate /etc/nginx/ssl/nginx.crt;
+              ssl_certificate_key /etc/nginx/ssl/nginx.key;
+              location / {
+                  proxy_pass http://localhost:3001;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+          }
+          EOF
           sudo nginx -t
-
-          # Restart Nginx to apply the changes
           sudo systemctl restart nginx
-
-          # Allow Nginx traffic through the firewall (if applicable)
-          sudo ufw allow 'Nginx Full'
-
-      - name: Check Nginx status
-        run: |
+          sudo ufw allow "Nginx Full"
           sudo systemctl status nginx
+          ' > setup_nginx.sh
+
+          # Make the script executable
+          chmod +x setup_nginx.sh
+
+          # Run the shell script
+          ./setup_nginx.sh
+
+      - name: Clean up SSH key (if necessary)
+        run: |
+          rm -f ec2_key.pem
