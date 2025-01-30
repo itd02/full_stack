@@ -57,7 +57,9 @@ jobs:
             if [ ! -d "$REPO_DIR" ]; then
               echo "Repository not found, cloning..."
               git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
-              cd ${REPO_DIR}  # Enter the cloned repository directory
+              cd ${REPO_DIR}  # Enter the cloned repository directory  
+              pwd
+              ls
             else
               echo "Repository already exists, pulling latest changes..."
               cd ~  # Move to the home directory
