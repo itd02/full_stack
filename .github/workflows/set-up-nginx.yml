@@ -1,7 +1,7 @@
 name: Deploy Nginx with SSL and Reverse Proxy to EC2
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   deploy-nginx:
