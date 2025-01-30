@@ -1,9 +1,7 @@
 name: Docker Build & Deploy
 
 on:
-  push:
-    branches:
-      - main  # Trigger the action when pushing to the main branch
+  workflow_dispatch:  # Allows you to manually trigger the workflow from the GitHub Actions UI
 
 jobs:
   build:
