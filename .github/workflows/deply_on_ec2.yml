@@ -1,10 +1,7 @@
 name: Docker Build & Deploy on EC2
 
 on:
-  workflow_dispatch
-  # push:
-  #   branches:
-  #     - main  # Trigger the action when pushing to the main branch
+  workflow_dispatch:  # Allows you to manually trigger the workflow from the GitHub Actions UI
 
 jobs:
   build:
@@ -51,8 +48,12 @@ jobs:
 
             # Pull your repository to get the latest code (if you need to)
             cd ~  # Move to home directory
-            git clone https://github.com/${{ github.repository }}  # Clone the repo (or pull if it already exists)
-            cd ${GITHUB_REPOSITORY_NAME}  # Change directory to the project folder
+            if [ ! -d "${GITHUB_REPOSITORY_NAME}" ]; then
+              git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
+            else
+              cd ${GITHUB_REPOSITORY_NAME}  # Change directory if the repo already exists
+              git pull origin main  # Pull the latest changes if the repo already exists
+            fi
 
             # Set up Docker Compose and Build Services
             sudo docker-compose -f docker-compose.yml up -d --build  # Build and run containers
