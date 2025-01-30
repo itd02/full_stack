@@ -9,19 +9,6 @@ jobs:
   build:
     runs-on: ubuntu-latest  # The environment in which the job runs
 
-    services:
-      mongo:
-        image: mongo:latest
-        ports:
-          - 27017:27017
-        env:
-          MONGO_INITDB_DATABASE: test2  # Use same database as in docker-compose
-        options: >-
-          --health-cmd="curl --silent --fail localhost:27017 || exit 1"  # Check health of MongoDB container
-          --health-interval=30s
-          --health-timeout=10s
-          --health-retries=5
-
     steps:
       # Checkout repository code
       - name: Checkout repository
