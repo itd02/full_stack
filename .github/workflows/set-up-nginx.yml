@@ -24,8 +24,11 @@ jobs:
         run: |
           ssh -i ec2_key.pem ubuntu@${{ secrets.HOST_DNS }} << 'EOF'
             set -e
+            # Export DOMAIN_NAME and PORT as environment variables
             export DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
             export PORT="${{ secrets.PORT }}"
+
+            # Run the Python script with the domain and port as arguments
             python3 /home/ubuntu/create_nginx_config.py $DOMAIN_NAME $PORT
           EOF
 
