@@ -20,12 +20,28 @@ jobs:
         run: |
           scp -i ec2_key.pem -o StrictHostKeyChecking=no create_nginx_config.py ubuntu@${{ secrets.HOST_DNS }}:/home/ubuntu/
 
+      - name: Install and start Nginx on EC2
+        run: |
+          ssh -T -i ec2_key.pem ubuntu@${{ secrets.HOST_DNS }} << 'EOF'
+            set -e
+            # Update package list and install Nginx
+            sudo apt-get update
+            sudo apt-get install -y nginx
+
+            # Start and enable Nginx service
+            sudo systemctl start nginx
+            sudo systemctl enable nginx
+          EOF
+
       - name: Execute Python script to configure Nginx and SSL on EC2
         run: |
           ssh -T -i ec2_key.pem ubuntu@${{ secrets.HOST_DNS }} << 'EOF'
             set -e
             # Run the Python script with the domain and port as arguments
             python3 /home/ubuntu/create_nginx_config.py "${{ secrets.DOMAIN_NAME }}" "${{ secrets.PORT }}"
+
+            # Reload Nginx to apply the new configuration
+            sudo systemctl reload nginx
           EOF
 
       - name: Clean up SSH key
