@@ -16,13 +16,15 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
           chmod 600 ec2_key.pem
 
-      - name: Copy Nginx setup script to EC2
+      - name: Copy Python script to EC2
         run: |
-          scp -i ec2_key.pem setup_nginx.sh ${USERNAME}@${{ secrets.HOST_DNS }}:/home/${USERNAME}/setup_nginx.sh
+          scp -i ec2_key.pem create_nginx_config.py ubuntu@${{ secrets.EC2_PUBLIC_IP }}:/home/ubuntu/
 
-      - name: SSH into EC2 and execute setup script
+      - name: Execute Python script to configure Nginx and SSL on EC2
         run: |
-          ssh -i ec2_key.pem ${USERNAME}@${{ secrets.HOST_DNS }} 'bash /home/${USERNAME}/setup_nginx.sh'
+          ssh -i ec2_key.pem ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+            python3 /home/ubuntu/create_nginx_config.py ${{ secrets.DOMAIN }} ${{ secrets.PORT }}
+          EOF
 
       - name: Clean up SSH key
         run: |
