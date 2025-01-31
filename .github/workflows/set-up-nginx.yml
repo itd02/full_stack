@@ -1,6 +1,9 @@
 name: Deploy Nginx with SSL and Reverse Proxy to EC2
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -38,7 +41,7 @@ jobs:
           ssh -T -i ec2_key.pem ubuntu@${{ secrets.HOST_DNS }} << 'EOF'
             set -e
             # Run the Python script with the domain and port as arguments
-            python3 /home/ubuntu/create_nginx_config.py "${{ secrets.DOMAIN_NAME }}" "${{ secrets.PORT }}"
+            sudo python3 /home/ubuntu/create_nginx_config.py "${{ secrets.DOMAIN_NAME }}" "${{ secrets.PORT }}"
 
             # Reload Nginx to apply the new configuration
             sudo systemctl reload nginx
