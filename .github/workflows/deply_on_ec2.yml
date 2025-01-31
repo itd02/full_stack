@@ -1,83 +1,95 @@
-name: Setup Nginx with SSL on EC2
+name: Docker Build & Deploy on EC2
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:  # Allows you to manually trigger the workflow from the GitHub Actions UI
 
 jobs:
-  setup-nginx:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest  # Use Ubuntu environment for the GitHub runner
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      # Set up SSH key for EC2 access
+      - name: Set up SSH key for EC2 access
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOST_DNS }}  # EC2 public DNS or IP address
+          username: ${{ secrets.USERNAME }}  # SSH username for your EC2 instance (ec2-user, ubuntu, etc.)
+          key: ${{ secrets.EC2_SSH_KEY }}  # SSH private key to authenticate to EC2
+          port: 22  # Default SSH port is 22
+          script: |
+            # Export the PUBLIC_IP_HOST_MACHINE as an environment variable on the EC2 instance
+            echo "PUBLIC_IP_HOST_MACHINE=$(curl -s ifconfig.me)" | sudo tee -a /etc/environment > /dev/null
+            echo "PUBLIC_IP_HOST_MACHINE is set to: $PUBLIC_IP_HOST_MACHINE"
 
-      - name: Set up SSH key for EC2
-        run: |
-          # Save SSH private key for connecting to EC2
-          echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
-          chmod 600 ec2_key.pem
 
-      - name: Install dependencies (SSH client)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y openssh-client
+            # Persist environment variables by appending them to ~/.bashrc
+            # echo "export PUBLIC_IP_HOST_MACHINE=${PUBLIC_IP_HOST_MACHINE}" >> ~/.bashrc
+            source /etc/profile
 
-      - name: Deploy Nginx to EC2
-        run: |
-          # SSH into the EC2 instance and set up Nginx
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ${USERNAME}@${{ secrets.HOST_DNS }} << 'EOF'
-            # Update and install Nginx and OpenSSL
-            sudo apt update
-            sudo apt install -y nginx openssl
+            
+            # Update EC2 instance
+            sudo apt-get update -y
+            sudo apt-get upgrade -y
 
-            # Create a directory for SSL certificates
-            sudo mkdir -p /etc/nginx/ssl
+            # Install Docker if not already installed
+            if ! command -v docker &> /dev/null; then
+              echo "Docker not found, installing Docker.."
+              sudo apt-get install -y docker.io
+            else
+              echo "Docker is already installed"
+            fi
 
-            # Generate a self-signed SSL certificate (for testing)
-            openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -subj "/C=US/ST=State/L=City/O=Company/CN=${{ secrets.DOMAIN_NAME }}"
+            # Install Docker Compose if not already installed
+            if ! command -v docker-compose &> /dev/null; then
+              echo "Docker Compose not found, installing Docker Compose..."
+              sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+            else
+              echo "Docker Compose is already installed"
+            fi
 
-            # Configure Nginx to reverse proxy to port 3001
-            sudo bash -c 'cat > /etc/nginx/sites-available/default <<CONFIG
-server {
-    listen 80;
-    server_name ${secrets.DOMAIN_NAME};
+            # Stop and remove all running containers before creating new ones
+            echo "Stopping and removing all containers..."
+            sudo docker stop $(sudo docker ps -aq)  # Stop all running containers
+            sudo docker rm $(sudo docker ps -aq)    # Remove all containers (running or stopped)
 
-    # Redirect HTTP to HTTPS
-    return 301 https://\$host\$request_uri;
-}
+            # Optionally, remove all unused Docker images and volumes (if you want to free up space)
+            # sudo docker system prune -af
 
-server {
-    listen 443 ssl;
-    server_name ${secrets.DOMAIN_NAME};
+            # Debug: Print the repository name
+            echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"  # This will print the full name of the repo
+            # REPO_NAME="${{ secrets.TARGET_DIR }}/$(basename $GITHUB_REPOSITORY)"
+            REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
 
-    ssl_certificate /etc/nginx/ssl/nginx.crt;
-    ssl_certificate_key /etc/nginx/ssl/nginx.key;
 
-    location / {
-        proxy_pass http://localhost:3001;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-CONFIG'
+            # Check if REPO_NAME has been set correctly
+            echo "Resolved REPO_NAME: $REPO_NAME"
 
-            # Test Nginx configuration
-            sudo nginx -t
+            # Check if the directory exists
+            if [ ! -d "$REPO_NAME" ]; then
+              echo "Repository not found, cloning..."
+              git clone https://github.com/${{ github.repository }}  # Clone the repo (if it doesn't exist)
+              cd $REPO_NAME  # Change to the cloned repo directory
+            else
+              echo "Repository already exists, pulling latest changes..."
+              cd $REPO_NAME  # Change to the existing repo directory
+              git pull origin main  # Pull the latest changes
+            fi
 
-            # Restart Nginx to apply the changes
-            sudo systemctl restart nginx
+            # Ensure docker-compose.yml is present
+            if [ ! -f "./docker-compose.yml" ]; then
+              echo "docker-compose.yml file not found!"
+              exit 1  # Exit the script with an error if docker-compose.yml is not found
+            fi
 
-            # Allow Nginx traffic through the firewall (if applicable)
-            sudo ufw allow 'Nginx Full'
+            # Set up Docker Compose and Build Services
+            sudo docker-compose -f docker-compose.yml up -d --build  # Build and run containers
 
-            # Check Nginx status
-            sudo systemctl status nginx
-          EOF
+            echo "Waiting for services to start..."
+            sleep 30  # Adjust this sleep time based on your containers' startup time
 
-      - name: Clean up SSH key
-        run: |
-          rm -f ec2_key.pem
+            # Verify if containers are running
+            sudo docker ps

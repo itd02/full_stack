@@ -18,12 +18,15 @@ jobs:
 
       - name: Copy Python script to EC2
         run: |
-          scp -i ec2_key.pem create_nginx_config.py StrictHostKeyChecking=no ${USERNAME}@${{ secrets.HOST_DNS }}:/home/ubuntu/
+          scp -i ec2_key.pem -o StrictHostKeyChecking=no create_nginx_config.py ubuntu@${{ secrets.HOST_DNS }}:/home/ubuntu/
 
       - name: Execute Python script to configure Nginx and SSL on EC2
         run: |
           ssh -i ec2_key.pem ubuntu@${{ secrets.HOST_DNS }} << 'EOF'
-            python3 /home/ubuntu/create_nginx_config.py ${{ secrets.DOMAIN_NAME }} ${{ secrets.PORT }}
+            set -e
+            export DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
+            export PORT="${{ secrets.PORT }}"
+            python3 /home/ubuntu/create_nginx_config.py $DOMAIN_NAME $PORT
           EOF
 
       - name: Clean up SSH key
