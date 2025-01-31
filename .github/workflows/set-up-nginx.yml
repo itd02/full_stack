@@ -22,7 +22,7 @@ jobs:
 
       - name: Execute Python script to configure Nginx and SSL on EC2
         run: |
-          ssh -i ec2_key.pem ubuntu@${{ secrets.HOST_DNS }} << EOF
+          ssh -T -i ec2_key.pem ubuntu@${{ secrets.HOST_DNS }} << 'EOF'
             set -e
             # Run the Python script with the domain and port as arguments
             python3 /home/ubuntu/create_nginx_config.py "${{ secrets.DOMAIN_NAME }}" "${{ secrets.PORT }}"
